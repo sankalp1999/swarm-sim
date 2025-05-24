@@ -1226,6 +1226,7 @@
     setupScene();
     populate();
     setupControls();
+    if (!audioCtx) initAudio();
     animate();
     
     window.addEventListener('resize', () => {
