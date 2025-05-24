@@ -1,4 +1,4 @@
-[Live Demo](https://x.com/dejavucoder)
+[Live Demo](https://sankalp1999.github.io/swarm-sim/swarm-simulation.html)
 
 # Swarm Intelligence Simulation
 
