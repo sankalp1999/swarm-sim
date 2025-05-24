@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced Swarm RL – Boids vs Predator with Evolution</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: "Courier New", monospace;
+      color: #fff;
+    }
+    
+    #info, #ui {
+      position: absolute;
+      top: 10px;
+      background: rgba(0, 0, 0, .7);
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 100;
+    }
+    
+    #info {
+      left: 10px;
+      color: #ff00ff;
+      border: 1px solid #ff00ff;
+      text-shadow: 0 0 10px #ff00ff;
+      font-size: 14px;
+    }
+    
+    #ui {
+      right: 10px;
+      color: #00ffff;
+      border: 1px solid #00ffff;
+      text-shadow: 0 0 10px #00ffff;
+      font-size: 12px;
+      width: 240px;
+    }
+    
+    button {
+      width: 100%;
+      margin: 2px 0;
+      padding: 5px;
+      border: 1px solid #00ffff;
+      background: transparent;
+      color: #00ffff;
+      font-family: "Courier New", monospace;
+      cursor: pointer;
+      transition: .2s;
+    }
+    
+    button:hover {
+      background: #00ffff;
+      color: #000;
+      box-shadow: 0 0 12px #00ffff;
+    }
+    
+    .stat {
+      margin: 4px 0;
+    }
+    
+    label {
+      display: block;
+      margin: 6px 0 2px;
+    }
+    
+    input[type=range] {
+      width: 100%;
+    }
+    
+    #targetInfo {
+      color: #ffff00;
+      margin-top: 5px;
+    }
+    
+    #genInfo {
+      color: #00ff00;
+      margin-top: 5px;
+    }
+    
+    #attribution {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, .7);
+      padding: 5px 10px;
+      border-radius: 5px;
+      z-index: 100;
+      font-size: 11px;
+      border: 1px solid #666;
+    }
+    
+    #attribution a {
+      color: #00ff88;
+      text-decoration: none;
+      text-shadow: 0 0 5px #00ff88;
+      transition: .2s;
+    }
+    
+    #attribution a:hover {
+      color: #00ffaa;
+      text-shadow: 0 0 10px #00ffaa;
+    }
+    
+    #infoIcon {
+      position: absolute;
+      top: 15px;
+      right: calc(240px + 50px);
+      width: 50px;
+      height: 50px;
+      background: rgba(0, 0, 0, .9);
+      border: 3px solid #ff00ff;
+      border-radius: 50%;
+      color: #ff00ff;
+      font-size: 32px;
+      line-height: 46px;
+      text-align: center;
+      cursor: help;
+      z-index: 101;
+      transition: .3s;
+      box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
+      font-weight: bold;
+    }
+    
+    #infoIcon:hover {
+      box-shadow: 0 0 30px #ff00ff;
+      transform: scale(1.1);
+      background: rgba(255, 0, 255, 0.2);
+      border-width: 4px;
+    }
+    
+    #infoTooltip {
+      position: absolute;
+      top: 75px;
+      right: calc(280px + 60px);
+      width: 350px;
+      background: rgba(0, 0, 0, .95);
+      border: 2px solid #ff00ff;
+      border-radius: 10px;
+      padding: 20px;
+      color: #fff;
+      font-size: 13px;
+      line-height: 1.6;
+      display: none;
+      z-index: 102;
+      box-shadow: 0 0 25px rgba(255, 0, 255, 0.3);
+    }
+    
+    #infoIcon:hover + #infoTooltip,
+    #infoTooltip:hover {
+      display: block;
+    }
+    
+    #infoTooltip h3 {
+      color: #ff00ff;
+      margin: 0 0 10px 0;
+      font-size: 14px;
+    }
+    
+    #infoTooltip p {
+      margin: 5px 0;
+    }
+    
+    #infoTooltip .highlight {
+      color: #00ffff;
+      font-weight: bold;
+    }
+    
+    /* ========== MOBILE RESPONSIVE ========== */
+    @media (max-width: 768px) {
+      #info {
+        left: 5px;
+        top: 5px;
+        font-size: 12px;
+        padding: 8px;
+        width: calc(50vw - 15px);
+        max-width: 200px;
+      }
+      
+      #ui {
+        right: 5px;
+        top: 5px;
+        font-size: 11px;
+        padding: 8px;
+        width: calc(50vw - 15px);
+        max-width: 220px;
+      }
+      
+      #infoIcon {
+        top: 5px;
+        right: calc(50vw - 15px);
+        width: 40px;
+        height: 40px;
+        font-size: 24px;
+        line-height: 36px;
+        border-width: 2px;
+      }
+      
+      #infoIcon:hover {
+        transform: scale(1.05);
+        border-width: 3px;
+      }
+      
+      #infoTooltip {
+        top: 50px;
+        right: 5px;
+        left: 5px;
+        width: auto;
+        max-width: none;
+        font-size: 12px;
+        padding: 15px;
+      }
+      
+      button {
+        padding: 8px 4px;
+        font-size: 11px;
+        margin: 3px 0;
+      }
+      
+      label {
+        font-size: 11px;
+        margin: 4px 0 1px;
+      }
+      
+      input[type=range] {
+        height: 20px;
+      }
+      
+      #attribution {
+        bottom: 5px;
+        right: 5px;
+        padding: 3px 6px;
+        font-size: 10px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      #info, #ui {
+        position: relative;
+        width: calc(100vw - 20px);
+        max-width: none;
+        margin: 5px 10px;
+        display: block;
+      }
+      
+      #info {
+        order: 1;
+      }
+      
+      #ui {
+        order: 2;
+        margin-top: 10px;
+      }
+      
+      #infoIcon {
+        position: fixed;
+        top: auto;
+        bottom: 60px;
+        right: 15px;
+        left: auto;
+        width: 45px;
+        height: 45px;
+        font-size: 28px;
+        line-height: 41px;
+        z-index: 110;
+      }
+      
+      #infoTooltip {
+        position: fixed;
+        top: auto;
+        bottom: 110px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+      
+      body {
+        padding-top: 300px;
+      }
+      
+      canvas {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        z-index: 1 !important;
+      }
+      
+      #attribution {
+        position: fixed;
+        bottom: 5px;
+        right: 5px;
+        left: auto;
+        font-size: 9px;
+        padding: 2px 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="info">
+    <div class="stat">BOIDS: <span id="boidCount">0</span></div>
+    <div class="stat">FPS: <span id="fps">0</span></div>
+    <div class="stat">COHESION: <span id="cohesion">0</span>%</div>
+    <div class="stat">SURVIVAL: <span id="survivalTime">0</span>s</div>
+    <div class="stat" id="camStatus"></div>
+    <div class="stat" id="targetInfo"></div>
+    <div class="stat" id="genInfo">GENERATION: 1</div>
+  </div>
+  
+  <div id="infoIcon">?</div>
+  <div id="infoTooltip">
+    <h3>Swarm Intelligence Simulation</h3>
+    <p><span class="highlight">Boids</span> are artificial life forms following three simple rules:</p>
+    <p>• <strong>Alignment</strong> - Match direction with neighbors<br>
+    • <strong>Cohesion</strong> - Stay close to the group<br>
+    • <strong>Separation</strong> - Avoid collisions</p>
+    <p>A <span class="highlight">predator</span> hunts the swarm, forcing evolution. Boids that survive reproduce, passing on genetic traits like speed and evasion abilities. Successful boids automatically reproduce every ~15 seconds.</p>
+    <p><strong>Key Features:</strong><br>
+    • Real-time evolution across generations<br>
+    • Self-attention mechanism for global awareness<br>
+    • Interactive predator control (arrow keys)<br>
+    • Emergent survival strategies</p>
+    <p>Watch as simple rules create complex, lifelike behaviors!</p>
+  </div>
+  
+  <div id="ui">
+    <div style="font-weight:bold">NEURAL SWARM CONTROL</div>
+    <button onclick="toggleAttention()">ATTENTION MAP: <span id="attStatus">ON</span></button>
+    <button onclick="toggleSelfAtt()">SELF ATT: <span id="selfStatus">ON</span></button>
+    <button onclick="togglePredator()">PREDATOR: <span id="predStatus">HUNTING</span></button>
+    <button onclick="toggleManualControl()">MANUAL CTRL: <span id="manualStatus">OFF</span></button>
+    <button onclick="toggleAudio()">AUDIO: <span id="audStatus">OFF</span></button>
+    <button onclick="resetSim()">RESET SIMULATION</button>
+    <hr>
+    <div style="font-weight:bold">TUNE PARAMS</div>
+    <label>Alignment (<span id="alignVal">1.2</span>)</label>
+    <input id="alignSlider" type="range" min="0" max="3" step="0.1" value="1.2">
+    <label>Separation (<span id="sepVal">1.8</span>)</label>
+    <input id="sepSlider" type="range" min="0" max="4" step="0.1" value="1.8">
+    <label>Speed Multiplier (<span id="speedVal">1.0</span>)</label>
+    <input id="speedSlider" type="range" min="0.2" max="3" step="0.1" value="1.0">
+    <p style="font-size:11px;line-height:1.3em;margin-top:6px">
+      🖱 drag = orbit · wheel = zoom<br>
+      Press <b>F</b> to cycle follow‑cam<br>
+      Press <b>R</b> to reset camera<br>
+      <b>Click</b> boid to set as target<br>
+      <b>Arrow keys</b> = control predator<br>
+      <b>Shift</b> = boost speed
+    </p>
+  </div>
+  
+  <div id="attribution">
+    made by <a href="https://x.com/dejavucoder" target="_blank">dejavucoder</a>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    /* ========= GLOBAL CONSTANTS ========= */
+    const WORLD = 200;
+    const BOIDS_INIT = 100;
+    const MAX_NEIGH = 7;
+    const SELF_SAMPLES = 20;
+    const REPRODUCTION_TIME = 15;
+    const MAX_BOIDS = 150;
+    const MIN_BOIDS = 20;
+    
+    const policy = {
+      align: 1.2,
+      cohesion: 0.9,
+      sep: 1.8,
+      avoid: 3.75,
+      speed: 3,
+      perc: 15
+    };
+    
+    const selfCfg = {
+      on: true,
+      temp: 10,
+      globInf: 0.3
+    };
+    
+    const predCfg = {
+      speed: 15,
+      anticipate: 3
+    };
+    
+    let speedMultiplier = 1.0;
+    
+    /* ========= RUNTIME STATE ========= */
+    let scene, camera, renderer;
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+    let boids = [];
+    let predator;
+    let showAtt = true;
+    let predHunt = true;
+    let manualControl = false;
+    let follow = null;
+    let camR = 150;
+    let camTheta = 0;
+    let camPhi = Math.PI / 4;
+    let last = performance.now();
+    let fpsClock = 0;
+    let fpsFrames = 0;
+    let start = Date.now();
+    let generation = 1;
+    let genePool = [];
+    let keys = {
+      ArrowUp: false,
+      ArrowDown: false,
+      ArrowLeft: false,
+      ArrowRight: false,
+      Shift: false
+    };
+    
+    /* ========== AUDIO ========= */
+    let audioCtx, masterGain, audioOn = true;
+    
+    function beep(f = 800, d = .1) {
+      if (!audioOn) return;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.frequency.value = f;
+      g.gain.value = .2;
+      o.connect(g).connect(masterGain);
+      o.start();
+      o.stop(audioCtx.currentTime + d);
+    }
+    
+    function initAudio() {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.connect(audioCtx.destination);
+      audioOn = true;
+    }
+    
+    /* ========== 3D HELPERS ========= */
+    function dispose(o) {
+      if (!o) return;
+      o.traverse(c => {
+        c.geometry && c.geometry.dispose();
+        if (c.material) {
+          (Array.isArray(c.material) ? c.material : [c.material])
+            .forEach(m => m.dispose());
+        }
+      });
+    }
+    
+    function removeLater(o, t = 90) {
+      setTimeout(() => {
+        o.parent && o.parent.remove(o);
+        dispose(o);
+      }, t);
+    }
+    
+    /* ========== GENETICS ========= */
+    class Genes {
+      constructor(parent1 = null, parent2 = null) {
+        if (parent1 && parent2) {
+          this.speed = this.mutate((parent1.speed + parent2.speed) / 2, 2, 5);
+          this.alignW = this.mutate((parent1.alignW + parent2.alignW) / 2, 0.5, 2);
+          this.sepW = this.mutate((parent1.sepW + parent2.sepW) / 2, 1, 3);
+          this.avoidW = this.mutate((parent1.avoidW + parent2.avoidW) / 2, 2, 6);
+        } else {
+          this.speed = 2.5 + Math.random() * 1.5;
+          this.alignW = 0.8 + Math.random() * 0.8;
+          this.sepW = 1.5 + Math.random() * 1;
+          this.avoidW = 3 + Math.random() * 2;
+        }
+      }
+      
+      mutate(val, min, max) {
+        const mutation = (Math.random() - 0.5) * 0.4;
+        return Math.max(min, Math.min(max, val + mutation));
+      }
+    }
+    
+    /* ========== CLASSES ========= */
+    class Boid {
+      constructor(id, genes = null) {
+        this.id = id;
+        this.alive = true;
+        this.pos = new THREE.Vector3(
+          (Math.random() - .5) * WORLD,
+          (Math.random() - .5) * WORLD,
+          (Math.random() - .5) * WORLD
+        );
+        this.vel = new THREE.Vector3(
+          (Math.random() - .5) * 2,
+          (Math.random() - .5) * 2,
+          (Math.random() - .5) * 2
+        );
+        this.acc = new THREE.Vector3();
+        this.att = new Map();
+        this.genes = genes || new Genes();
+        this.birthTime = Date.now();
+        this.survivalTime = 0;
+        this.mesh = this.makeMesh();
+        scene.add(this.mesh);
+      }
+      
+      makeMesh() {
+        const hue = 0.5 + 0.1 * Math.sin(this.genes.speed) + 0.1 * Math.cos(this.genes.alignW);
+        const color = new THREE.Color().setHSL(hue, 1, 0.5);
+        const body = new THREE.Mesh(
+          new THREE.ConeGeometry(1, 3, 4),
+          new THREE.MeshBasicMaterial({ color })
+        );
+        body.position.copy(this.pos);
+        const aura = new THREE.Mesh(
+          new THREE.SphereGeometry(1.2, 6, 6),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: .3 })
+        );
+        body.add(aura);
+        body.userData.boid = this;
+        return body;
+      }
+      
+      neighbors(list) {
+        const arr = [];
+        this.att.clear();
+        for (const o of list) {
+          if (o === this || !o.alive) continue;
+          
+          // Safety check for valid positions
+          if (!isFinite(o.pos.x) || !isFinite(o.pos.y) || !isFinite(o.pos.z)) continue;
+          
+          const d = this.pos.distanceTo(o.pos);
+          
+          // Safety check for valid distance
+          if (!isFinite(d) || d < 0.001) continue; // Avoid division by very small numbers
+          
+          if (d < policy.perc && arr.length < MAX_NEIGH) {
+            arr.push(o);
+            const attWeight = 1 / (1 + d * .1);
+            
+            // Safety check for attention weight
+            if (isFinite(attWeight) && attWeight > 0) {
+              this.att.set(o.id, Math.min(attWeight, 10)); // Cap attention weight to prevent extreme values
+            }
+          }
+        }
+        return arr;
+      }
+      
+      selfAttention(list) {
+        if (!selfCfg.on) return null;
+        const sample = [];
+        const step = Math.max(1, Math.floor(list.length / SELF_SAMPLES));
+        for (let i = 0; i < list.length; i += step) {
+          const b = list[i];
+          if (b !== this && b.alive) sample.push(b);
+        }
+        if (!sample.length) return null;
+        
+        let sum = 0;
+        const scr = [];
+        const q = this.pos.clone().normalize();
+        
+        // Check for invalid position vectors
+        if (q.length() === 0) return null;
+        
+        for (const b of sample) {
+          const bPosNorm = b.pos.clone().normalize();
+          if (bPosNorm.length() === 0) continue;
+          
+          // Clamp the exponential input to prevent overflow
+          const dotProduct = q.dot(bPosNorm);
+          const expInput = Math.max(-20, Math.min(20, dotProduct / selfCfg.temp));
+          const e = Math.exp(expInput);
+          
+          // Additional safety check for infinite values
+          if (!isFinite(e)) continue;
+          
+          scr.push([b, e]);
+          sum += e;
+        }
+        
+        // Handle division by zero or very small sum
+        if (sum < 1e-10) return null;
+        
+        const dir = new THREE.Vector3();
+        const alig = new THREE.Vector3();
+        for (const [b, e] of scr) {
+          const w = e / sum;
+          
+          // Safety check for weight validity
+          if (!isFinite(w)) continue;
+          
+          dir.addScaledVector(b.pos, w);
+          alig.addScaledVector(b.vel, w);
+        }
+        
+        // Normalize and check for validity
+        const dirNorm = dir.sub(this.pos);
+        const aligNorm = alig.clone();
+        
+        if (dirNorm.length() < 1e-10 || aligNorm.length() < 1e-10) return null;
+        
+        return {
+          dir: dirNorm.normalize(),
+          alig: aligNorm.normalize()
+        };
+      }
+      
+      applyBeh(neigh, predPos, glob) {
+        this.acc.set(0, 0, 0);
+        
+        if (neigh.length) {
+          let ws = 0;
+          const al = new THREE.Vector3();
+          const coh = new THREE.Vector3();
+          const sep = new THREE.Vector3();
+          
+          for (const n of neigh) {
+            const w = this.att.get(n.id) || 1;
+            
+            // Safety check for attention weight validity
+            if (!isFinite(w) || w <= 0) continue;
+            
+            ws += w;
+            al.addScaledVector(n.vel, w);
+            coh.addScaledVector(n.pos, w);
+            const diff = this.pos.clone().sub(n.pos);
+            const diffLenSq = diff.lengthSq();
+            if (diffLenSq > 1e-10) {
+              sep.addScaledVector(diff.divideScalar(diffLenSq), w);
+            }
+          }
+          
+          // Only apply behaviors if we have valid weights
+          if (ws > 1e-10) {
+            const alignForce = al.divideScalar(ws);
+            const cohForce = coh.divideScalar(ws).sub(this.pos);
+            
+            // Clamp force magnitudes to prevent excessive accelerations
+            const maxForce = 50; // Reasonable upper limit
+            if (alignForce.length() > 0) {
+              alignForce.setLength(Math.min(alignForce.length(), policy.align * this.genes.alignW));
+            }
+            if (cohForce.length() > 0) {
+              cohForce.setLength(Math.min(cohForce.length(), policy.cohesion));
+            }
+            if (sep.length() > 0) {
+              sep.setLength(Math.min(sep.length(), policy.sep * this.genes.sepW));
+            }
+            
+            // Additional safety checks before adding to acceleration
+            if (alignForce.length() < maxForce) this.acc.add(alignForce);
+            if (cohForce.length() < maxForce) this.acc.add(cohForce);
+            if (sep.length() < maxForce) this.acc.add(sep);
+          }
+        }
+        
+        if (glob && glob.dir && glob.alig) {
+          const globDir = glob.dir.clone().multiplyScalar(policy.cohesion * selfCfg.globInf);
+          const globAlig = glob.alig.clone().multiplyScalar(policy.align * selfCfg.globInf * this.genes.alignW);
+          
+          // Safety checks for global attention forces
+          if (isFinite(globDir.length()) && globDir.length() < 50) {
+            this.acc.add(globDir);
+          }
+          if (isFinite(globAlig.length()) && globAlig.length() < 50) {
+            this.acc.add(globAlig);
+          }
+        }
+        
+        if (predPos) {
+          const d = predPos.distanceTo(this.pos);
+          if (d < 30 && d > 0.1) {
+            const avoidForce = this.pos.clone().sub(predPos);
+            const avoidMagnitude = this.genes.avoidW * (1 - d / 30);
+            if (avoidForce.length() > 0 && isFinite(avoidMagnitude)) {
+              avoidForce.setLength(Math.min(avoidMagnitude, 100)); // Cap avoidance force
+              this.acc.add(avoidForce);
+            }
+          }
+        }
+        
+        const B = WORLD / 2 - 10;
+        ['x', 'y', 'z'].forEach(a => {
+          if (Math.abs(this.pos[a]) > B) {
+            const boundaryForce = -(this.pos[a]) * 0.02;
+            if (isFinite(boundaryForce)) {
+              this.acc[a] += boundaryForce;
+            }
+          }
+        });
+        
+        // Final safety check: clamp acceleration to prevent extreme values
+        const maxAcc = 200;
+        if (this.acc.length() > maxAcc) {
+          this.acc.setLength(maxAcc);
+        }
+      }
+      
+      update(dt, predPos, list) {
+        if (!this.alive) return;
+        
+        // Safety check for delta time
+        if (!isFinite(dt) || dt <= 0 || dt > 0.1) {
+          dt = 1/60; // Fallback to 60fps timestep
+        }
+        
+        this.survivalTime = (Date.now() - this.birthTime) / 1000;
+        const neigh = this.neighbors(list);
+        const glob = this.selfAttention(list);
+        this.applyBeh(neigh, predPos, glob);
+        
+        // Safety checks before updating velocity
+        if (isFinite(this.acc.x) && isFinite(this.acc.y) && isFinite(this.acc.z)) {
+          this.vel.addScaledVector(this.acc, dt);
+        }
+        
+        // Clamp velocity to prevent extreme values
+        const maxSpeed = this.genes.speed * speedMultiplier;
+        if (this.vel.length() > maxSpeed) {
+          this.vel.setLength(maxSpeed);
+        }
+        
+        // Additional safety check for velocity validity
+        if (!isFinite(this.vel.x) || !isFinite(this.vel.y) || !isFinite(this.vel.z)) {
+          this.vel.set(0, 0, 0);
+        }
+        
+        // Safety checks before updating position
+        if (isFinite(this.vel.x) && isFinite(this.vel.y) && isFinite(this.vel.z)) {
+          this.pos.addScaledVector(this.vel, dt);
+        }
+        
+        // Ensure position stays within reasonable bounds
+        const maxPos = WORLD;
+        this.pos.x = Math.max(-maxPos, Math.min(maxPos, this.pos.x));
+        this.pos.y = Math.max(-maxPos, Math.min(maxPos, this.pos.y));
+        this.pos.z = Math.max(-maxPos, Math.min(maxPos, this.pos.z));
+        
+        // Additional safety check for position validity
+        if (!isFinite(this.pos.x) || !isFinite(this.pos.y) || !isFinite(this.pos.z)) {
+          // Reset to safe position if corrupted
+          this.pos.set(
+            (Math.random() - .5) * WORLD * 0.5,
+            (Math.random() - .5) * WORLD * 0.5,
+            (Math.random() - .5) * WORLD * 0.5
+          );
+          this.vel.set(0, 0, 0);
+        }
+        
+        this.mesh.position.copy(this.pos);
+        if (this.vel.length() > .01) {
+          this.mesh.lookAt(this.pos.clone().add(this.vel));
+        }
+        if (showAtt && this.id % 10 === 0) {
+          this.drawLinks(neigh);
+        }
+      }
+      
+      drawLinks(neigh) {
+        // Only draw attention maps for a smaller subset of boids to reduce visual load
+        if (this.id % 10 !== 0) return; // Changed from 5 to 10 to show fewer boids' attention
+        
+        // Count total links to prevent overflow
+        let linkCount = 0;
+        const maxLinks = 3; // Limit max connections per boid
+        
+        for (const n of neigh) {
+          const w = this.att.get(n.id) || 0;
+          
+          // Increase threshold for showing connections
+          if (w < 0.5) continue; // Changed from 0.3 to 0.5 for stronger connections only
+          
+          // Limit number of connections
+          if (linkCount >= maxLinks) break;
+          linkCount++;
+          
+          const g = new THREE.CylinderGeometry(
+            0.15 + 0.15 * w, // Reduced from 0.25 to 0.15 for thinner lines
+            0.15 + 0.15 * w,
+            this.pos.distanceTo(n.pos),
+            6
+          );
+          const m = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(1, 0.5 + w * 0.3, 0), // Orange color with weight-based variation
+            transparent: true,
+            opacity: w * .6 // Kept the same opacity logic
+          });
+          const link = new THREE.Mesh(g, m);
+          link.position.copy(this.pos).add(n.pos).multiplyScalar(.5);
+          link.lookAt(n.pos);
+          link.rotateX(Math.PI / 2);
+          scene.add(link);
+          removeLater(link, 60); // Reduced from 90ms to 60ms for faster cleanup
+        }
+      }
+    }
+    
+    class Predator {
+      constructor() {
+        this.pos = new THREE.Vector3();
+        this.vel = new THREE.Vector3();
+        this.target = null;
+        this.trail = [];
+        this.mesh = this.makeMesh();
+        scene.add(this.mesh);
+      }
+      
+      makeMesh() {
+        const root = new THREE.Mesh(
+          new THREE.SphereGeometry(7, 16, 16),
+          new THREE.MeshBasicMaterial({ color: 0xff0066, wireframe: true })
+        );
+        const core = new THREE.Mesh(
+          new THREE.SphereGeometry(4, 16, 16),
+          new THREE.MeshBasicMaterial({ color: 0xff0000 })
+        );
+        root.add(core);
+        this.glow = new THREE.Mesh(
+          new THREE.SphereGeometry(12, 32, 32),
+          new THREE.MeshBasicMaterial({ color: 0xff0066, transparent: true, opacity: .3 })
+        );
+        root.add(this.glow);
+        return root;
+      }
+      
+      selectTarget(list) {
+        return list.reduce((a, b) =>
+          this.pos.distanceTo(a.pos) < this.pos.distanceTo(b.pos) ? a : b
+        );
+      }
+      
+      setTarget(boid) {
+        this.target = boid;
+        beep(1000, 0.1);
+      }
+      
+      update(dt, list) {
+        if (manualControl) {
+          const speed = (keys.Shift ? predCfg.speed * 2 : predCfg.speed) * speedMultiplier;
+          const moveVec = new THREE.Vector3();
+          
+          if (keys.ArrowUp) moveVec.z -= 1;
+          if (keys.ArrowDown) moveVec.z += 1;
+          if (keys.ArrowLeft) moveVec.x -= 1;
+          if (keys.ArrowRight) moveVec.x += 1;
+          
+          if (moveVec.length() > 0) {
+            moveVec.normalize().multiplyScalar(speed);
+            this.vel.lerp(moveVec, 0.2);
+          } else {
+            this.vel.multiplyScalar(0.9);
+          }
+        } else if (!predHunt || !list.length) {
+          this.vel.multiplyScalar(.95);
+        } else {
+          if (!this.target || !this.target.alive) {
+            this.target = this.selectTarget(list);
+          }
+          const future = this.target.pos.clone().addScaledVector(this.target.vel, predCfg.anticipate);
+          const dir = future.sub(this.pos).normalize();
+          this.vel.lerp(dir.multiplyScalar(predCfg.speed * speedMultiplier), .1);
+        }
+        
+        if (this.target && this.target.alive && this.pos.distanceTo(this.target.pos) < 5) {
+          genePool.push({
+            genes: this.target.genes,
+            survival: this.target.survivalTime
+          });
+          this.target.alive = false;
+          this.target.mesh.visible = false;
+          this.target = null;
+          beep(250, .25);
+        }
+        
+        this.pos.addScaledVector(this.vel, dt);
+        this.mesh.position.copy(this.pos);
+        this.glow.scale.setScalar(1 + .25 * Math.sin(performance.now() * 0.004));
+        this.trail.push(this.pos.clone());
+        if (this.trail.length > 25) this.trail.shift();
+      }
+      
+      draw() {
+        if (showAtt && (predHunt || manualControl) && this.target) {
+          const beamGeo = new THREE.CylinderGeometry(
+            .6, .3,
+            this.pos.distanceTo(this.target.pos),
+            6, 1, true
+          );
+          const mat = new THREE.MeshBasicMaterial({
+            color: 0xff0000,
+            transparent: true,
+            opacity: .6
+          });
+          const beam = new THREE.Mesh(beamGeo, mat);
+          beam.position.copy(this.pos).add(this.target.pos).multiplyScalar(.5);
+          beam.lookAt(this.target.pos);
+          beam.rotateX(Math.PI / 2);
+          scene.add(beam);
+          removeLater(beam);
+        }
+        
+        for (let i = 1; i < this.trail.length; i++) {
+          const g = new THREE.BufferGeometry().setFromPoints([this.trail[i - 1], this.trail[i]]);
+          const m = new THREE.LineBasicMaterial({
+            color: 0xff6600,
+            transparent: true,
+            opacity: .3 + i / this.trail.length * .4
+          });
+          const l = new THREE.Line(g, m);
+          scene.add(l);
+          removeLater(l);
+        }
+      }
+    }
+    
+    /* ========== REPRODUCTION ========= */
+    function reproduce() {
+      const live = boids.filter(b => b.alive);
+      if (live.length >= MAX_BOIDS) return;
+      const survivors = live
+        .filter(b => b.survivalTime > REPRODUCTION_TIME)
+        .sort((a, b) => b.survivalTime - a.survivalTime);
+      if (survivors.length < 2) return;
+      const parent1 = survivors[Math.floor(Math.random() * Math.min(5, survivors.length))];
+      const parent2 = survivors[Math.floor(Math.random() * Math.min(5, survivors.length))];
+      if (parent1 !== parent2) {
+        const child = new Boid(boids.length, new Genes(parent1.genes, parent2.genes));
+        child.pos.copy(parent1.pos).add(parent2.pos).multiplyScalar(0.5).add(
+          new THREE.Vector3(
+            (Math.random() - 0.5) * 10,
+            (Math.random() - 0.5) * 10,
+            (Math.random() - 0.5) * 10
+          )
+        );
+        boids.push(child);
+        beep(1200, 0.1);
+      }
+    }
+    
+    function evolveGeneration() {
+      if (boids.filter(b => b.alive).length < MIN_BOIDS) {
+        generation++;
+        document.getElementById('genInfo').textContent = `GENERATION: ${generation}`;
+        genePool.sort((a, b) => b.survival - a.survival);
+        const elite = genePool.slice(0, Math.min(10, genePool.length));
+        
+        boids.forEach(b => {
+          scene.remove(b.mesh);
+          dispose(b.mesh);
+        });
+        boids = [];
+        
+        for (let i = 0; i < BOIDS_INIT; i++) {
+          let genes;
+          if (elite.length >= 2 && Math.random() < 0.7) {
+            const p1 = elite[Math.floor(Math.random() * elite.length)];
+            const p2 = elite[Math.floor(Math.random() * elite.length)];
+            genes = new Genes(p1.genes, p2.genes);
+          } else {
+            genes = new Genes();
+          }
+          boids.push(new Boid(i, genes));
+        }
+        beep(400, 0.3);
+      }
+    }
+    
+    /* ========== INITIAL SETUP ========= */
+    function setupScene() {
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x000033, .003);
+      camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, .1, 1000);
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setPixelRatio(devicePixelRatio);
+      document.body.appendChild(renderer.domElement);
+      
+      const grid = new THREE.GridHelper(WORLD * 2, 50, 0xff00ff, 0x440044);
+      grid.position.y = -WORLD / 2;
+      scene.add(grid);
+      
+      const light1 = new THREE.PointLight(0xff00ff, 2, 300);
+      light1.position.set(50, 50, 50);
+      scene.add(light1);
+      
+      const light2 = new THREE.PointLight(0x00ffff, 2, 300);
+      light2.position.set(-50, -50, -50);
+      scene.add(light2);
+    }
+    
+    function populate() {
+      boids = [];
+      for (let i = 0; i < BOIDS_INIT; i++) {
+        boids.push(new Boid(i));
+      }
+      predator = new Predator();
+    }
+    
+    /* ========== CAMERA ========= */
+    function updateCamera() {
+      if (follow && follow.alive) {
+        const ahead = follow.vel.clone().normalize();
+        const offset = new THREE.Vector3(0, 4, -10);
+        if (ahead.length()) {
+          offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(ahead.x, ahead.z));
+        }
+        camera.position.copy(follow.pos).add(offset);
+        camera.lookAt(follow.pos);
+      } else {
+        camera.position.set(
+          camR * Math.sin(camPhi) * Math.cos(camTheta),
+          camR * Math.cos(camPhi),
+          camR * Math.sin(camPhi) * Math.sin(camTheta)
+        );
+        camera.lookAt(new THREE.Vector3());
+      }
+    }
+    
+    /* ========== MAIN LOOP ========= */
+    function animate() {
+      requestAnimationFrame(animate);
+      const now = performance.now();
+      const dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+      fpsFrames++;
+      
+      if (now - fpsClock > 1000) {
+        document.getElementById('fps').textContent = fpsFrames;
+        fpsFrames = 0;
+        fpsClock = now;
+      }
+      
+      const live = boids.filter(b => b.alive);
+      predator.update(dt, live);
+      
+      for (const b of live) {
+        b.update(dt, predator.pos, live);
+      }
+      
+      predator.draw();
+      
+      if (Math.random() < 0.01) reproduce();
+      evolveGeneration();
+      
+      document.getElementById('boidCount').textContent = live.length;
+      document.getElementById('survivalTime').textContent = ((Date.now() - start) / 1000).toFixed(1);
+      
+      if (predator.target && predator.target.alive) {
+        document.getElementById('targetInfo').textContent = `TARGET: BOID #${predator.target.id}`;
+      } else {
+        document.getElementById('targetInfo').textContent = '';
+      }
+      
+      if (live.length) {
+        const center = live.reduce((v, b) => v.add(b.pos.clone()), new THREE.Vector3())
+          .divideScalar(live.length);
+        const avgDist = live.reduce((s, b) => s + b.pos.distanceTo(center), 0) / live.length;
+        document.getElementById('cohesion').textContent = (Math.max(0, 100 - avgDist)).toFixed(0);
+      }
+      
+      updateCamera();
+      renderer.render(scene, camera);
+    }
+    
+    /* ========== UI HANDLERS ========= */
+    function toggleAttention() {
+      showAtt = !showAtt;
+      document.getElementById('attStatus').textContent = showAtt ? 'ON' : 'OFF';
+      beep();
+    }
+    
+    function toggleSelfAtt() {
+      selfCfg.on = !selfCfg.on;
+      document.getElementById('selfStatus').textContent = selfCfg.on ? 'ON' : 'OFF';
+      beep();
+    }
+    
+    function togglePredator() {
+      predHunt = !predHunt;
+      document.getElementById('predStatus').textContent = predHunt ? 'HUNTING' : 'PASSIVE';
+      beep();
+    }
+    
+    function toggleManualControl() {
+      manualControl = !manualControl;
+      document.getElementById('manualStatus').textContent = manualControl ? 'ON' : 'OFF';
+      if (manualControl) predHunt = false;
+      beep();
+    }
+    
+    function toggleAudio() {
+      if (!audioCtx) initAudio();
+      audioOn = !audioOn;
+      document.getElementById('audStatus').textContent = audioOn ? 'ON' : 'OFF';
+      beep();
+    }
+    
+    function resetSim() {
+      boids.forEach(b => {
+        scene.remove(b.mesh);
+        dispose(b.mesh);
+      });
+      scene.remove(predator.mesh);
+      dispose(predator.mesh);
+      populate();
+      start = Date.now();
+      follow = null;
+      generation = 1;
+      genePool = [];
+      document.getElementById('camStatus').textContent = '';
+      document.getElementById('genInfo').textContent = 'GENERATION: 1';
+      beep(600);
+    }
+    
+    function cycleFollow() {
+      const alive = boids.filter(b => b.alive);
+      if (!alive.length) {
+        follow = null;
+      } else if (!follow) {
+        follow = alive[0];
+      } else {
+        const idx = alive.indexOf(follow);
+        follow = alive[(idx + 1) % alive.length];
+      }
+      document.getElementById('camStatus').textContent = follow ? `CAMERA: BOID #${follow.id}` : '';
+    }
+    
+    /* ========== CONTROLS ========= */
+    function setupControls() {
+      let drag = false, px = 0, py = 0;
+      
+      window.addEventListener('mousedown', e => {
+        if (e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution')) {
+          return;
+        }
+        if (follow) return;
+        drag = true;
+        px = e.clientX;
+        py = e.clientY;
+      });
+      
+      window.addEventListener('mouseup', () => drag = false);
+      
+      window.addEventListener('mousemove', e => {
+        if (!drag || follow || e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution')) return;
+        camTheta += (e.clientX - px) * 0.01;
+        camPhi = Math.max(0.1, Math.min(Math.PI - 0.1, camPhi - (e.clientY - py) * 0.01));
+        px = e.clientX;
+        py = e.clientY;
+      });
+      
+      window.addEventListener('wheel', e => {
+        if (e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution')) {
+          return;
+        }
+        if (follow) return;
+        e.preventDefault();
+        camR = Math.max(60, Math.min(300, camR + e.deltaY * 0.1));
+      });
+      
+      window.addEventListener('keydown', e => {
+        if (e.key.toLowerCase() === 'f') cycleFollow();
+        if (e.key.toLowerCase() === 'r') {
+          camR = 150;
+          camTheta = 0;
+          camPhi = Math.PI / 4;
+          follow = null;
+          document.getElementById('camStatus').textContent = '';
+          beep(800, 0.1);
+        }
+        if (keys.hasOwnProperty(e.key)) {
+          keys[e.key] = true;
+          e.preventDefault();
+        }
+      });
+      
+      window.addEventListener('keyup', e => {
+        if (keys.hasOwnProperty(e.key)) {
+          keys[e.key] = false;
+          e.preventDefault();
+        }
+      });
+      
+      window.addEventListener('click', e => {
+        // Don't process clicks on UI elements
+        if (e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution')) {
+          return;
+        }
+        
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(scene.children, true);
+        for (const hit of intersects) {
+          if (hit.object.parent && hit.object.parent.userData.boid) {
+            predator.setTarget(hit.object.parent.userData.boid);
+            break;
+          }
+        }
+      });
+      
+      document.getElementById('alignSlider').addEventListener('input', e => {
+        policy.align = parseFloat(e.target.value);
+        document.getElementById('alignVal').textContent = e.target.value;
+      });
+      
+      document.getElementById('sepSlider').addEventListener('input', e => {
+        policy.sep = parseFloat(e.target.value);
+        document.getElementById('sepVal').textContent = e.target.value;
+      });
+      
+      const speedSlider = document.getElementById('speedSlider');
+      if (speedSlider) {
+        speedSlider.addEventListener('input', e => {
+          speedMultiplier = parseFloat(e.target.value);
+          document.getElementById('speedVal').textContent = e.target.value;
+        });
+      } else {
+        console.error('Speed slider not found!');
+      }
+    }
+    
+    /* ========== BOOT ========= */
+    setupScene();
+    populate();
+    setupControls();
+    animate();
+    
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+    
+    window.addEventListener('beforeunload', () => {
+      renderer.dispose();
+      if (audioCtx) audioCtx.close();
+    });
+  </script>
+</body>
+</html>
