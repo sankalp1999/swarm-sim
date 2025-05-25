@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Enhanced Swarm RL – Boids vs Predator with Evolution</title>
   <style>
     body {
@@ -11,6 +11,10 @@
       background: #000;
       font-family: "Courier New", monospace;
       color: #fff;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
     
     #info, #ui {
@@ -42,16 +46,18 @@
     button {
       width: 100%;
       margin: 2px 0;
-      padding: 5px;
+      padding: 8px;
       border: 1px solid #00ffff;
       background: transparent;
       color: #00ffff;
       font-family: "Courier New", monospace;
       cursor: pointer;
       transition: .2s;
+      min-height: 44px;
+      font-size: 14px;
     }
     
-    button:hover {
+    button:hover, button:active {
       background: #00ffff;
       color: #000;
       box-shadow: 0 0 12px #00ffff;
@@ -68,6 +74,42 @@
     
     input[type=range] {
       width: 100%;
+      min-height: 32px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    
+    input[type=range]::-webkit-slider-track {
+      background: rgba(0, 255, 255, 0.3);
+      height: 4px;
+      border-radius: 2px;
+    }
+    
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      background: #00ffff;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    input[type=range]::-moz-range-track {
+      background: rgba(0, 255, 255, 0.3);
+      height: 4px;
+      border-radius: 2px;
+    }
+    
+    input[type=range]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      background: #00ffff;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
     }
     
     #targetInfo {
@@ -117,14 +159,14 @@
       font-size: 32px;
       line-height: 46px;
       text-align: center;
-      cursor: help;
+      cursor: pointer;
       z-index: 101;
       transition: .3s;
       box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
       font-weight: bold;
     }
     
-    #infoIcon:hover {
+    #infoIcon:hover, #infoIcon:active {
       box-shadow: 0 0 30px #ff00ff;
       transform: scale(1.1);
       background: rgba(255, 0, 255, 0.2);
@@ -149,7 +191,9 @@
     }
     
     #infoIcon:hover + #infoTooltip,
-    #infoTooltip:hover {
+    #infoIcon:active + #infoTooltip,
+    #infoTooltip:hover,
+    #infoTooltip.show {
       display: block;
     }
     
@@ -168,15 +212,71 @@
       font-weight: bold;
     }
     
+    #mobileControls {
+      position: fixed;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      z-index: 105;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #00ffff;
+    }
+    
+    .dpad {
+      display: grid;
+      grid-template-columns: 60px 60px 60px;
+      grid-template-rows: 60px 60px 60px;
+      gap: 5px;
+    }
+    
+    .dpad button {
+      min-height: 60px;
+      width: 60px;
+      margin: 0;
+      font-size: 24px;
+      padding: 0;
+      border: 2px solid #00ffff;
+      background: rgba(0, 255, 255, 0.1);
+    }
+    
+    .dpad button:active {
+      background: rgba(0, 255, 255, 0.5);
+    }
+    
+    .dpad .up { grid-column: 2; grid-row: 1; }
+    .dpad .left { grid-column: 1; grid-row: 2; }
+    .dpad .center { grid-column: 2; grid-row: 2; background: rgba(255, 0, 255, 0.2); border-color: #ff00ff; }
+    .dpad .right { grid-column: 3; grid-row: 2; }
+    .dpad .down { grid-column: 2; grid-row: 3; }
+    
+    #toggleUI {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 40px;
+      height: 40px;
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid #00ffff;
+      border-radius: 5px;
+      color: #00ffff;
+      font-size: 20px;
+      display: none;
+      z-index: 110;
+      padding: 0;
+      min-height: 40px;
+    }
+    
     /* ========== MOBILE RESPONSIVE ========== */
     @media (max-width: 768px) {
       #info {
         left: 5px;
         top: 5px;
-        font-size: 12px;
-        padding: 8px;
-        width: calc(50vw - 15px);
-        max-width: 200px;
+        font-size: 11px;
+        padding: 6px;
+        max-width: 45%;
       }
       
       #ui {
@@ -184,118 +284,145 @@
         top: 5px;
         font-size: 11px;
         padding: 8px;
-        width: calc(50vw - 15px);
-        max-width: 220px;
+        width: 200px;
+        max-height: 80vh;
+        overflow-y: auto;
       }
       
       #infoIcon {
-        top: 5px;
-        right: calc(50vw - 15px);
-        width: 40px;
-        height: 40px;
-        font-size: 24px;
-        line-height: 36px;
-        border-width: 2px;
-      }
-      
-      #infoIcon:hover {
-        transform: scale(1.05);
-        border-width: 3px;
+        display: none;
       }
       
       #infoTooltip {
-        top: 50px;
-        right: 5px;
-        left: 5px;
-        width: auto;
-        max-width: none;
-        font-size: 12px;
-        padding: 15px;
+        display: none !important;
       }
       
       button {
-        padding: 8px 4px;
-        font-size: 11px;
-        margin: 3px 0;
+        padding: 10px 6px;
+        font-size: 12px;
+        margin: 4px 0;
+        min-height: 40px;
       }
       
       label {
         font-size: 11px;
-        margin: 4px 0 1px;
+        margin: 6px 0 2px;
       }
       
       input[type=range] {
-        height: 20px;
+        min-height: 28px;
       }
       
       #attribution {
         bottom: 5px;
-        right: 5px;
+        left: 5px;
+        right: auto;
         padding: 3px 6px;
-        font-size: 10px;
+        font-size: 9px;
+      }
+      
+      #mobileControls {
+        display: block;
+      }
+      
+      .controls-hint {
+        display: none;
       }
     }
     
     @media (max-width: 480px) {
-      #info, #ui {
-        position: relative;
-        width: calc(100vw - 20px);
-        max-width: none;
-        margin: 5px 10px;
-        display: block;
-      }
-      
       #info {
-        order: 1;
+        position: fixed;
+        top: 55px;
+        left: 5px;
+        right: auto;
+        max-width: calc(100% - 10px);
+        font-size: 10px;
+        padding: 5px;
       }
       
       #ui {
-        order: 2;
-        margin-top: 10px;
-      }
-      
-      #infoIcon {
+        display: none;
         position: fixed;
-        top: auto;
-        bottom: 60px;
-        right: 15px;
-        left: auto;
-        width: 45px;
-        height: 45px;
-        font-size: 28px;
-        line-height: 41px;
-        z-index: 110;
-      }
-      
-      #infoTooltip {
-        position: fixed;
-        top: auto;
-        bottom: 110px;
-        right: 10px;
-        left: 10px;
+        top: 55px;
+        left: 5px;
+        right: 5px;
         width: auto;
+        max-width: none;
         max-height: 60vh;
         overflow-y: auto;
+        z-index: 109;
       }
       
-      body {
-        padding-top: 300px;
+      #ui.show {
+        display: block;
       }
       
-      canvas {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        z-index: 1 !important;
+      #toggleUI {
+        display: block;
       }
       
-      #attribution {
-        position: fixed;
-        bottom: 5px;
-        right: 5px;
-        left: auto;
+      #mobileControls {
+        bottom: 20px;
+      }
+      
+      .dpad {
+        grid-template-columns: 50px 50px 50px;
+        grid-template-rows: 50px 50px 50px;
+        gap: 3px;
+      }
+      
+      .dpad button {
+        min-height: 50px;
+        width: 50px;
+        font-size: 20px;
+      }
+      
+      button {
+        min-height: 36px;
+        padding: 8px 4px;
+        font-size: 11px;
+      }
+      
+      input[type=range] {
+        min-height: 24px;
+      }
+      
+      input[type=range]::-webkit-slider-thumb {
+        width: 20px;
+        height: 20px;
+      }
+      
+      input[type=range]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+      }
+    }
+    
+    @media (max-height: 600px) {
+      #info {
+        padding: 4px;
         font-size: 9px;
-        padding: 2px 4px;
+      }
+      
+      #ui {
+        max-height: 50vh;
+      }
+      
+      #mobileControls {
+        bottom: 5px;
+      }
+      
+      .dpad {
+        grid-template-columns: 40px 40px 40px;
+        grid-template-rows: 40px 40px 40px;
+        gap: 2px;
+      }
+      
+      .dpad button {
+        min-height: 40px;
+        width: 40px;
+        font-size: 16px;
       }
     }
   </style>
@@ -310,6 +437,8 @@
     <div class="stat" id="targetInfo"></div>
     <div class="stat" id="genInfo">GENERATION: 1</div>
   </div>
+  
+  <button id="toggleUI" onclick="toggleUIPanel()">☰</button>
   
   <div id="infoIcon">?</div>
   <div id="infoTooltip">
@@ -344,7 +473,7 @@
     <input id="sepSlider" type="range" min="0" max="4" step="0.1" value="1.8">
     <label>Speed Multiplier (<span id="speedVal">1.0</span>)</label>
     <input id="speedSlider" type="range" min="0.2" max="3" step="0.1" value="1.0">
-    <p style="font-size:11px;line-height:1.3em;margin-top:6px">
+    <p style="font-size:11px;line-height:1.3em;margin-top:6px" class="controls-hint">
       🖱 drag = orbit · wheel = zoom<br>
       Press <b>F</b> to cycle follow‑cam<br>
       Press <b>R</b> to reset camera<br>
@@ -352,6 +481,16 @@
       <b>Arrow keys</b> = control predator<br>
       <b>Shift</b> = boost speed
     </p>
+  </div>
+  
+  <div id="mobileControls">
+    <div class="dpad">
+      <button class="up" ontouchstart="startMove('up')" ontouchend="stopMove('up')">↑</button>
+      <button class="left" ontouchstart="startMove('left')" ontouchend="stopMove('left')">←</button>
+      <button class="center" ontouchstart="startMove('boost')" ontouchend="stopMove('boost')">⚡</button>
+      <button class="right" ontouchstart="startMove('right')" ontouchend="stopMove('right')">→</button>
+      <button class="down" ontouchstart="startMove('down')" ontouchend="stopMove('down')">↓</button>
+    </div>
   </div>
   
   <div id="attribution">
@@ -975,7 +1114,7 @@
       camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, .1, 1000);
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(innerWidth, innerHeight);
-      renderer.setPixelRatio(devicePixelRatio);
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); // Limit pixel ratio for performance
       document.body.appendChild(renderer.domElement);
       
       const grid = new THREE.GridHelper(WORLD * 2, 50, 0xff00ff, 0x440044);
@@ -1087,7 +1226,14 @@
     function toggleManualControl() {
       manualControl = !manualControl;
       document.getElementById('manualStatus').textContent = manualControl ? 'ON' : 'OFF';
-      if (manualControl) predHunt = false;
+      if (manualControl) {
+        predHunt = false;
+        if (window.innerWidth <= 768) {
+          document.getElementById('mobileControls').style.display = 'block';
+        }
+      } else {
+        document.getElementById('mobileControls').style.display = 'none';
+      }
       beep();
     }
     
@@ -1128,10 +1274,110 @@
       document.getElementById('camStatus').textContent = follow ? `CAMERA: BOID #${follow.id}` : '';
     }
     
+    function toggleUIPanel() {
+      const ui = document.getElementById('ui');
+      ui.classList.toggle('show');
+      beep();
+    }
+    
+    /* ========== MOBILE CONTROLS ========= */
+    function startMove(direction) {
+      if (!manualControl) return;
+      switch(direction) {
+        case 'up': keys.ArrowUp = true; break;
+        case 'down': keys.ArrowDown = true; break;
+        case 'left': keys.ArrowLeft = true; break;
+        case 'right': keys.ArrowRight = true; break;
+        case 'boost': keys.Shift = true; break;
+      }
+    }
+    
+    function stopMove(direction) {
+      switch(direction) {
+        case 'up': keys.ArrowUp = false; break;
+        case 'down': keys.ArrowDown = false; break;
+        case 'left': keys.ArrowLeft = false; break;
+        case 'right': keys.ArrowRight = false; break;
+        case 'boost': keys.Shift = false; break;
+      }
+    }
+    
     /* ========== CONTROLS ========= */
     function setupControls() {
       let drag = false, px = 0, py = 0;
+      let touchStartX = 0, touchStartY = 0;
+      let touchStartCamTheta = camTheta, touchStartCamPhi = camPhi;
+      let touchStartCamR = camR;
+      let touchStartTime = 0;
+      let lastTouchDistance = 0;
       
+      // Touch events for mobile camera control
+      window.addEventListener('touchstart', e => {
+        if (e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution') || e.target.closest('#mobileControls') || e.target.closest('#toggleUI')) {
+          return;
+        }
+        
+        e.preventDefault();
+        touchStartTime = Date.now();
+        
+        if (e.touches.length === 1) {
+          drag = true;
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          touchStartCamTheta = camTheta;
+          touchStartCamPhi = camPhi;
+        } else if (e.touches.length === 2) {
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          lastTouchDistance = Math.sqrt(dx * dx + dy * dy);
+          touchStartCamR = camR;
+        }
+      });
+      
+      window.addEventListener('touchmove', e => {
+        if (!drag && e.touches.length !== 2) return;
+        if (e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution') || e.target.closest('#mobileControls') || e.target.closest('#toggleUI')) {
+          return;
+        }
+        
+        e.preventDefault();
+        
+        if (e.touches.length === 1 && drag && !follow) {
+          const dx = e.touches[0].clientX - touchStartX;
+          const dy = e.touches[0].clientY - touchStartY;
+          camTheta = touchStartCamTheta + dx * 0.01;
+          camPhi = Math.max(0.1, Math.min(Math.PI - 0.1, touchStartCamPhi - dy * 0.01));
+        } else if (e.touches.length === 2 && !follow) {
+          const dx = e.touches[0].clientX - e.touches[1].clientX;
+          const dy = e.touches[0].clientY - e.touches[1].clientY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const scale = distance / lastTouchDistance;
+          camR = Math.max(60, Math.min(300, touchStartCamR / scale));
+        }
+      });
+      
+      window.addEventListener('touchend', e => {
+        if (e.touches.length === 0) {
+          drag = false;
+          
+          // Tap to select boid
+          if (Date.now() - touchStartTime < 300 && e.changedTouches.length === 1) {
+            const touch = e.changedTouches[0];
+            mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            for (const hit of intersects) {
+              if (hit.object.parent && hit.object.parent.userData.boid) {
+                predator.setTarget(hit.object.parent.userData.boid);
+                break;
+              }
+            }
+          }
+        }
+      });
+      
+      // Mouse events
       window.addEventListener('mousedown', e => {
         if (e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution')) {
           return;
@@ -1202,6 +1448,7 @@
         }
       });
       
+      // Slider controls
       document.getElementById('alignSlider').addEventListener('input', e => {
         policy.align = parseFloat(e.target.value);
         document.getElementById('alignVal').textContent = e.target.value;
@@ -1218,9 +1465,18 @@
           speedMultiplier = parseFloat(e.target.value);
           document.getElementById('speedVal').textContent = e.target.value;
         });
-      } else {
-        console.error('Speed slider not found!');
       }
+      
+      // Handle mobile controls visibility
+      if (window.innerWidth <= 768 && manualControl) {
+        document.getElementById('mobileControls').style.display = 'block';
+      }
+      
+      // Mobile info icon click
+      document.getElementById('infoIcon').addEventListener('click', () => {
+        const tooltip = document.getElementById('infoTooltip');
+        tooltip.classList.toggle('show');
+      });
     }
     
     /* ========== BOOT ========= */
@@ -1234,6 +1490,13 @@
       camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight);
+      
+      // Update mobile controls visibility
+      if (window.innerWidth > 768) {
+        document.getElementById('mobileControls').style.display = 'none';
+      } else if (manualControl) {
+        document.getElementById('mobileControls').style.display = 'block';
+      }
     });
     
     window.addEventListener('beforeunload', () => {
