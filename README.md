@@ -20,5 +20,11 @@ A **predator** hunts the swarm, forcing evolution. Boids that survive reproduce,
 - Self-attention mechanism for global awareness
 - Interactive predator control (arrow keys)
 - Emergent survival strategies
+- Advanced visual effects: Particle trails, glowing obstacles
+- Enhanced mobile UX: Haptic feedback, swipe gestures (cycle camera, toggle hunt mode/predator, reset camera)
+- Emergent behaviors: Panic scatter, V-formation escape
+- Environmental obstacles: 3D spheres boids and predator avoid
+- New "Ambush" predator hunting strategy
+- Performance optimizations: Spatial grid for O(1) neighbor lookup
 
-Watch as simple rules create complex, lifelike behaviors! 
+Watch as simple rules create complex, lifelike behaviors! The simulation now runs much smoother, especially with 100+ boids. Mobile experience is greatly enhanced, and more dynamic behaviors emerge. Try the new "HUNT MODE" button or swipe gestures on mobile! 🚀 
