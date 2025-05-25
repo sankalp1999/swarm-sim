@@ -290,18 +290,27 @@
       }
       
       #infoIcon {
-        display: none;
+        display: block;
       }
       
       #infoTooltip {
-        display: none !important;
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 350px;
+        background: rgba(0, 0, 0, 0.95);
+        border: 2px solid #ff00ff;
+        border-radius: 10px;
+        padding: 20px;
+        z-index: 1000;
+        box-shadow: 0 0 25px rgba(255, 0, 255, 0.3);
       }
       
-      button {
-        padding: 10px 6px;
-        font-size: 12px;
-        margin: 4px 0;
-        min-height: 40px;
+      #infoTooltip.show {
+        display: block;
       }
       
       label {
@@ -321,12 +330,22 @@
         font-size: 9px;
       }
       
-      #mobileControls {
-        display: block;
-      }
-      
-      .controls-hint {
+      .controls-hint.desktop-controls {
         display: none;
+      }
+      .controls-hint.mobile-controls {
+        display: block;
+        margin-bottom: 10px;
+        color: #00ffaa;
+      }
+    }
+    
+    @media (min-width: 769px) {
+      .controls-hint.mobile-controls {
+        display: none;
+      }
+      .controls-hint.desktop-controls {
+        display: block;
       }
     }
     
@@ -474,16 +493,21 @@
     <input id="sepSlider" type="range" min="0" max="4" step="0.1" value="1.8">
     <label>Speed Multiplier (<span id="speedVal">1.0</span>)</label>
     <input id="speedSlider" type="range" min="0.2" max="3" step="0.1" value="1.0">
-    <p style="font-size:11px;line-height:1.3em;margin-top:6px" class="controls-hint">
+    <p style="font-size:11px;line-height:1.3em;margin-top:6px" class="controls-hint desktop-controls">
       🖱 drag = orbit · wheel = zoom<br>
-      Press <b>F</b> to cycle follow‑cam (desktop)<br>
-      Press <b>R</b> to reset camera (desktop)<br>
+      Press <b>F</b> to cycle follow‑cam<br>
+      Press <b>R</b> to reset camera<br>
       <b>Click</b> boid to set as target<br>
       <b>Arrow keys</b> = control predator<br>
-      <b>Shift</b> = boost speed<br>
+      <b>Shift</b> = boost speed
+    </p>
+    <p style="font-size:11px;line-height:1.3em;margin-top:6px" class="controls-hint mobile-controls">
+      <b>Drag</b> = orbit camera<br>
+      <b>Pinch</b> = zoom camera<br>
       <b>Swipe left/right</b> = cycle follow‑cam<br>
-      <b>Double Tap</b> = reset camera<br>
-      <b>Tap</b> boid to set as target (mobile)
+      <b>Double tap</b> = reset camera<br>
+      <b>Tap</b> boid to set as target<br>
+      <b>Swipe up/down</b> = toggle modes
     </p>
   </div>
   
@@ -1549,11 +1573,6 @@
       document.getElementById('manualStatus').textContent = manualControl ? 'ON' : 'OFF';
       if (manualControl) {
         predHunt = false;
-        if (window.innerWidth <= 768) {
-          document.getElementById('mobileControls').style.display = 'block';
-        }
-      } else {
-        document.getElementById('mobileControls').style.display = 'none';
       }
       beep();
       vibrate(20);
@@ -1652,7 +1671,7 @@
       
       // Touch events for mobile camera control
       window.addEventListener('touchstart', e => {
-        if (e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution') || e.target.closest('#mobileControls') || e.target.closest('#toggleUI')) {
+        if (e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution')) {
           return;
         }
         
@@ -1675,7 +1694,7 @@
       
       window.addEventListener('touchmove', e => {
         if (!drag && e.touches.length !== 2) return;
-        if (e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution') || e.target.closest('#mobileControls') || e.target.closest('#toggleUI')) {
+        if (e.target.closest('#ui') || e.target.closest('#info') || e.target.closest('#infoIcon') || e.target.closest('#infoTooltip') || e.target.closest('#attribution')) {
           return;
         }
         
@@ -1849,10 +1868,39 @@
       }
       
       // Mobile info icon click
-      document.getElementById('infoIcon').addEventListener('click', () => {
-        const tooltip = document.getElementById('infoTooltip');
-        tooltip.classList.toggle('show');
-      });
+      const infoIcon = document.getElementById('infoIcon');
+      const infoTooltip = document.getElementById('infoTooltip');
+      function isMobile() {
+        return window.innerWidth <= 768;
+      }
+      if (infoIcon && infoTooltip) {
+        if (isMobile()) {
+          // Remove hover-based display for mobile (handled by CSS)
+          infoTooltip.style.display = 'none';
+          infoTooltip.classList.remove('show');
+          infoIcon.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (infoTooltip.classList.contains('show')) {
+              infoTooltip.classList.remove('show');
+              infoTooltip.style.display = 'none';
+            } else {
+              infoTooltip.classList.add('show');
+              infoTooltip.style.display = 'block';
+            }
+          });
+          // Hide tooltip when tapping outside
+          document.addEventListener('click', (e) => {
+            if (!infoTooltip.contains(e.target) && !infoIcon.contains(e.target)) {
+              infoTooltip.classList.remove('show');
+              infoTooltip.style.display = 'none';
+            }
+          });
+        } else {
+          // Desktop: let CSS handle hover, but ensure tooltip is hidden by default
+          infoTooltip.style.display = '';
+          infoTooltip.classList.remove('show');
+        }
+      }
     }
     
     /* ========== BOOT ========= */
@@ -1866,13 +1914,6 @@
       camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight);
-      
-      // Update mobile controls visibility
-      if (window.innerWidth > 768) {
-        document.getElementById('mobileControls').style.display = 'none';
-      } else if (manualControl) {
-        document.getElementById('mobileControls').style.display = 'block';
-      }
     });
     
     window.addEventListener('beforeunload', () => {
