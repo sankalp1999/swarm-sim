@@ -27,4 +27,4 @@ A **predator** hunts the swarm, forcing evolution. Boids that survive reproduce,
 - New "Ambush" predator hunting strategy
 - Performance optimizations: Spatial grid for O(1) neighbor lookup
 
-Watch as simple rules create complex, lifelike behaviors! The simulation now runs much smoother, especially with 100+ boids. Mobile experience is greatly enhanced, and more dynamic behaviors emerge. Try the new "HUNT MODE" button or swipe gestures on mobile! 🚀 
+Watch as simple rules create complex, lifelike behaviors. Welcome to the swarm.
