@@ -1360,6 +1360,10 @@
     
     /* ========== INITIAL SETUP ========= */
     function setupScene() {
+      // Remove old renderer if it exists
+      if (renderer && renderer.domElement && renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
+      }
       scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x000033, .003);
       camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, .1, 1000);
