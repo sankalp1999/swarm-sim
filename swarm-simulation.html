@@ -1242,16 +1242,26 @@
                 this.target = closestBoid;
               } else if (obstacles.length > 0) {
                 // Move to hide near an obstacle
-                const targetObs = obstacles[Math.floor(this.pos.x + this.pos.y) % obstacles.length];
-                const hidePos = targetObs.position.clone().add(
-                  new THREE.Vector3(
-                    Math.sin(performance.now() * 0.001) * (targetObs.radius + 15),
-                    0,
-                    Math.cos(performance.now() * 0.001) * (targetObs.radius + 15)
-                  )
-                );
-                const dir = hidePos.sub(this.pos).normalize();
-                this.vel.lerp(dir.multiplyScalar(predCfg.speed * 0.5), 0.05);
+                const targetObsIdx = Math.floor(Math.abs(this.pos.x + this.pos.y)) % obstacles.length;
+                if (obstacles[targetObsIdx]) { // Check if targetObs exists
+                    const targetObs = obstacles[targetObsIdx];
+                    const hidePos = targetObs.position.clone().add(
+                      new THREE.Vector3(
+                        Math.sin(performance.now() * 0.001) * (targetObs.radius + 15),
+                        0,
+                        Math.cos(performance.now() * 0.001) * (targetObs.radius + 15)
+                      )
+                    );
+                    const dir = hidePos.sub(this.pos).normalize();
+                    this.vel.lerp(dir.multiplyScalar(predCfg.speed * 0.5), 0.05);
+                } else { // Fallback if targetObs is somehow undefined (e.g. obstacles modified concurrently)
+                    const randomDir = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+                    this.vel.lerp(randomDir.multiplyScalar(predCfg.speed * 0.25), 0.05);
+                }
+              } else {
+                // No obstacles or no suitable boid near obstacles, roam slowly
+                const randomDir = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+                this.vel.lerp(randomDir.multiplyScalar(predCfg.speed * 0.25), 0.05);
               }
             }
             
